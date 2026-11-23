@@ -29,6 +29,9 @@ export interface AnswerInput {
 export interface Answer extends AnswerInput {
   id: string;
   question_id: string;
+  created_at?: string;
+  copyCount?: number;
+  lastCopiedAt?: number;
 }
 
 export interface LibrarySnapshot {

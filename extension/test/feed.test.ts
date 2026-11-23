@@ -2,7 +2,7 @@ import { IDBFactory } from 'fake-indexeddb';
 import { afterEach, vi } from 'vitest';
 import { resetDbForTests } from '../src/core/db';
 import { refreshProductFeed, saveProductFeed } from '../src/core/feed';
-import { addBackup, createProduct, createQuestion, loadSnapshot, updateAnswer } from '../src/core/library';
+import { addBackup, createProduct, createQuestion, loadSnapshot, recordAnswerCopy, updateAnswer } from '../src/core/library';
 import { answerImportPrompt, buildBackup, parseBackup } from '../src/core/portable';
 
 const url = 'https://example.com/feed.json';
@@ -36,6 +36,24 @@ it('tests and saves an unchanged feed URL with one request and reports validated
   await expect(saveProductFeed(saved, url)).resolves.toEqual({ questions: 1, answers: 2 });
   expect(request).toHaveBeenCalledTimes(1);
   expect((await loadSnapshot()).answers).toHaveLength(2);
+});
+
+it('retains copy usage for matching feed question and text through a refresh', async () => {
+  const request = mockFetch();
+  const product = await createProduct('Field Notes');
+  request.mockResolvedValueOnce(feed([entry('Offline?', 'Yes.', 'Short'), entry('Where?', 'Old text.')]));
+  await saveProductFeed(product, url);
+  const before = (await loadSnapshot()).answers;
+  const unchanged = before.find((answer) => answer.text === 'Yes.')!;
+  await recordAnswerCopy(unchanged.id);
+  await recordAnswerCopy(before.find((answer) => answer.text === 'Old text.')!.id);
+  const used = (await loadSnapshot()).answers.find((answer) => answer.id === unchanged.id)!;
+
+  request.mockResolvedValueOnce(feed([entry('OFFLINE?', 'Yes.', 'New label'), entry('Where?', 'New text.')]));
+  await refreshProductFeed(product.id, true);
+  const after = (await loadSnapshot()).answers;
+  expect(after.find((answer) => answer.text === 'Yes.')).toEqual({ ...used, label: 'New label' });
+  expect(after.find((answer) => answer.text === 'New text.')).not.toHaveProperty('copyCount');
 });
 
 it('atomically replaces feed entries and keeps questions saved locally before and after setup', async () => {

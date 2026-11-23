@@ -138,7 +138,8 @@ ${format}`;
 
 export function buildBackup(snapshot: LibrarySnapshot) {
   const products = snapshot.products.map(({ id, name, feed_url }) => ({ id, name, ...(feed_url ? { feed_url } : {}) }));
-  return { format: BACKUP_FORMAT, schema_version: BACKUP_VERSION, ...snapshot, products };
+  const answers = snapshot.answers.map(({ id, question_id, text, label }) => ({ id, question_id, text, ...(label ? { label } : {}) }));
+  return { format: BACKUP_FORMAT, schema_version: BACKUP_VERSION, products, questions: snapshot.questions, answers };
 }
 
 export function parseBackup(input: string): DraftProduct[] {

@@ -83,7 +83,7 @@ export async function createQuestion(productId: string, value: string, input?: A
     const existing = await store.index('by_product').getAll(productId);
     if (existing.some((q) => questionKey(q.question) === questionKey(question.question))) return false;
     await store.add(product.feed_url ? { ...question, local_open: true } : question);
-    if (answer) await tx.objectStore('answers').add({ id: uuid(), question_id: question.id, ...answer });
+    if (answer) await tx.objectStore('answers').add({ id: uuid(), question_id: question.id, created_at: question.created_at, ...answer });
     return true;
   });
 }
@@ -102,7 +102,7 @@ export async function renameQuestion(id: string, value: string): Promise<void> {
 }
 
 export async function createAnswer(questionId: string, input: AnswerInput): Promise<void> {
-  const answer = { id: uuid(), question_id: questionId, ...readAnswer(input) };
+  const answer = { id: uuid(), question_id: questionId, created_at: now(), ...readAnswer(input) };
   await write(ALL_STORES, async (tx) => {
     const question = await tx.objectStore('questions').get(questionId);
     if (!question) throw new Error('This question no longer exists.');
@@ -118,7 +118,17 @@ export async function updateAnswer(id: string, input: AnswerInput): Promise<void
     const row = await store.get(id);
     if (!row) throw new Error('This answer no longer exists.');
     await checkQuestionEditable(tx, (await tx.objectStore('questions').get(row.question_id))!);
-    await store.put({ id, question_id: row.question_id, ...answer });
+    await store.put({ ...row, text: answer.text, label: answer.label });
+  });
+}
+
+export async function recordAnswerCopy(id: string): Promise<void> {
+  await write(['answers'], async (tx) => {
+    const store = tx.objectStore('answers');
+    const answer = await store.get(id);
+    if (answer) {
+      await store.put({ ...answer, copyCount: (answer.copyCount ?? 0) + 1, lastCopiedAt: Date.now() });
+    }
   });
 }
 
@@ -129,34 +139,73 @@ async function checkQuestionEditable(tx: WriteTx, question: Question, allowOpen 
   }
 }
 
-async function removeQuestion(tx: WriteTx, id: string): Promise<void> {
+async function removeQuestion(tx: WriteTx, id: string): Promise<Answer[]> {
   const answers = tx.objectStore('answers');
-  for (const key of await answers.index('by_question').getAllKeys(id)) await answers.delete(key);
+  const deleted = await answers.index('by_question').getAll(id);
+  for (const answer of deleted) await answers.delete(answer.id);
   await tx.objectStore('questions').delete(id);
+  return deleted;
 }
 
-export async function deleteProduct(id: string): Promise<void> {
-  await write(ALL_STORES, async (tx) => {
-    for (const key of await tx.objectStore('questions').index('by_product').getAllKeys(id)) await removeQuestion(tx, key);
+export async function deleteProduct(id: string): Promise<LibrarySnapshot | undefined> {
+  return write(ALL_STORES, async (tx) => {
+    const product = await tx.objectStore('products').get(id);
+    if (!product) return;
+    const questions = await tx.objectStore('questions').index('by_product').getAll(id);
+    const answers: Answer[] = [];
+    for (const question of questions) {
+      for (const answer of await removeQuestion(tx, question.id)) answers.push(answer);
+    }
     await tx.objectStore('products').delete(id);
+    return { products: [product], questions, answers };
   });
 }
 
-export async function deleteQuestion(id: string): Promise<void> {
-  await write(ALL_STORES, async (tx) => {
+export async function deleteQuestion(id: string): Promise<LibrarySnapshot | undefined> {
+  return write(ALL_STORES, async (tx) => {
     const question = await tx.objectStore('questions').get(id);
     if (!question) return;
     await checkQuestionEditable(tx, question, true);
-    await removeQuestion(tx, id);
+    const answers = await removeQuestion(tx, id);
+    return { products: [], questions: [question], answers };
   });
 }
 
-export async function deleteAnswer(id: string): Promise<void> {
-  await write(ALL_STORES, async (tx) => {
+export async function deleteAnswer(id: string): Promise<LibrarySnapshot | undefined> {
+  return write(ALL_STORES, async (tx) => {
     const answer = await tx.objectStore('answers').get(id);
     if (!answer) return;
     await checkQuestionEditable(tx, (await tx.objectStore('questions').get(answer.question_id))!);
     await tx.objectStore('answers').delete(id);
+    return { products: [], questions: [], answers: [answer] };
+  });
+}
+
+export async function restoreDeleted(deleted: LibrarySnapshot): Promise<void> {
+  await write(ALL_STORES, async (tx) => {
+    const products = tx.objectStore('products');
+    const questions = tx.objectStore('questions');
+    const answers = tx.objectStore('answers');
+    for (const product of deleted.products) {
+      if ((await products.getAll()).some((p) => nameKey(p.name) === nameKey(product.name))) {
+        throw new Error('A product with that name already exists.');
+      }
+      await products.add(product);
+    }
+    for (const question of deleted.questions) {
+      if (!await products.get(question.product_id)) throw new Error('Undo the product deletion first.');
+      const existing = await questions.index('by_product').getAll(question.product_id);
+      if (existing.some((q) => questionKey(q.question) === questionKey(question.question))) {
+        throw new Error('A question with that wording already exists.');
+      }
+      await questions.add(question);
+    }
+    for (const answer of deleted.answers) {
+      const question = await questions.get(answer.question_id);
+      if (!question) throw new Error('Undo the question deletion first.');
+      if (!deleted.products.length) await checkQuestionEditable(tx, question);
+      await answers.add(answer);
+    }
   });
 }
 
@@ -198,7 +247,7 @@ export function recordsToAdd(snapshot: LibrarySnapshot, products: DraftProduct[]
       for (const a of q.answers) {
         if (saved.has(a.text)) continue;
         saved.add(a.text);
-        additions.answers.push({ id: uuid(), question_id: questionId, ...a });
+        additions.answers.push({ id: uuid(), question_id: questionId, created_at: ts, ...a });
       }
     }
   }
@@ -273,12 +322,13 @@ export async function commitFeed(product: Product, feedUrl?: string, feed?: Feed
       const matchingProduct = { id: product.id, name: product.name };
       const next = recordsToAdd({ products: [matchingProduct], questions: kept, answers: [] }, [{ name: product.name, questions: drafts }]);
       for (const question of next.questions) await questionStore.add(question);
-      const answerIds = new Map(answers.map((a) => [JSON.stringify([a.question_id, a.text]), a.id]));
+      const previousAnswers = new Map(answers.map((a) => [JSON.stringify([a.question_id, a.text]), a]));
       const retained = new Set<string>();
       for (const answer of next.answers) {
-        const id = answerIds.get(JSON.stringify([answer.question_id, answer.text])) ?? answer.id;
-        await answerStore.put({ ...answer, id });
-        retained.add(id);
+        const previous = previousAnswers.get(JSON.stringify([answer.question_id, answer.text]));
+        const row = previous ? { ...previous, label: answer.label } : answer;
+        await answerStore.put(row);
+        retained.add(row.id);
       }
       for (const answer of answers) {
         if (!retained.has(answer.id)) await answerStore.delete(answer.id);

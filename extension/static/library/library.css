@@ -1,4 +1,5 @@
-.layout { display: grid; grid-template-columns: 228px minmax(0, 1fr); min-block-size: 100vh; }
+.layout { display: grid; grid-template-columns: 228px minmax(0, 1fr); min-block-size: 100vh; font-size: 14px; line-height: 1.5; }
+.layout .small { font-size: 13px; }
 .sidebar {
   display: flex; flex-direction: column; gap: 24px; padding: 22px 14px 16px;
   position: sticky; inset-block-start: 0; block-size: 100vh; overflow: auto;
@@ -9,9 +10,10 @@
   align-self: start; min-block-size: 0; padding: 0 7px;
   background: none; border: 0; font-size: 20px; font-weight: 750; letter-spacing: -.035em;
 }
-.nav-heading { font-size: 12px; padding-inline: 8px; }
+.brand-link:hover:not(:disabled) { background: none; }
+.nav-heading { font-size: 13px; padding-inline: 8px; }
 .product-list { gap: 5px; }
-.nav-item { text-align: start; border: none; background: none; border-radius: 6px; padding: 6px 8px; inline-size: 100%; overflow-wrap: anywhere; }
+.nav-item { text-align: start; border: none; background: none; border-radius: 6px; padding: 6px 8px; inline-size: 100%; overflow-wrap: anywhere; font-size: 14px; }
 .nav-item[aria-current='page'] { background: var(--accent-soft); font-weight: 650; }
 .product-nav-item { display: flex; align-items: center; gap: 6px; }
 .nav-product-name { flex: 1; min-inline-size: 0; }
@@ -24,7 +26,8 @@
 .sidebar hr, .library-menu hr { inline-size: 100%; border: 0; border-block-start: 1px solid var(--border); margin: 6px 0; }
 
 .content { padding: 27px 34px 70px; max-inline-size: 1040px; gap: 15px; align-content: start; }
-.content h1 { font-size: 27px; letter-spacing: -.035em; }
+.content h1 { font-size: 29px; letter-spacing: -.035em; }
+.content h2 { font-size: 17px; }
 .product-view { gap: 20px; }
 .product-heading { gap: 5px; }
 .product-heading-row { flex-wrap: wrap; gap: 10px; align-items: center; }
@@ -66,10 +69,11 @@
 .question-toggle[aria-expanded='true'] .question-chevron { transform: rotate(180deg); }
 .question-summary { display: grid; gap: 4px; min-inline-size: 0; }
 .question-line { display: flex; flex-wrap: wrap; column-gap: 8px; align-items: baseline; overflow-wrap: anywhere; }
-.question-line strong { font-weight: 665; }
-.question-preview { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 13px; }
-.answer-labels { display: flex; flex-wrap: wrap; gap: 4px; }
-.answer-labels .badge, .answer-block .badge { overflow-wrap: anywhere; white-space: normal; }
+.question-line strong { font-size: 15px; font-weight: 665; }
+.question-preview-row { display: flex; align-items: baseline; gap: 8px; min-inline-size: 0; }
+.question-preview { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.question-preview-row .badge { flex: none; max-inline-size: 45%; }
+.question-preview-row .badge, .answer-block .badge { overflow-wrap: anywhere; white-space: normal; font-size: 12px; }
 .question-body { padding: 8px 6px 5px 28px; gap: 9px; }
 .answer-block { padding: 9px 11px; gap: 5px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
 .answer-meta { gap: 6px; }
@@ -81,9 +85,6 @@
 .save-error { color: var(--danger); }
 
 .library-home { gap: 11px; }
-.home-products { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 195px), 1fr)); gap: 10px; }
-.home-product { display: grid; gap: 6px; justify-items: start; text-align: start; overflow-wrap: anywhere; }
-.home-product strong { font-size: 15px; }
 .help-page { max-inline-size: 660px; }
 .help-page .card { gap: 8px; padding: 14px; }
 .help-page ol { margin: 0; padding-inline-start: 1.5em; }

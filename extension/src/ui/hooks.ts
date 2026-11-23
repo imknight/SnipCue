@@ -26,17 +26,18 @@ export interface Toast {
   id: number;
   text: string;
   kind: 'ok' | 'err';
+  undo?: () => Promise<boolean>;
 }
 
 export function useToasts() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const n = useRef(0);
-  const push = useCallback((text: string, kind: Toast['kind'] = 'ok') => {
+  const push = useCallback((text: string, kind: Toast['kind'] = 'ok', undo?: Toast['undo']) => {
     const id = ++n.current;
-    setToasts((t) => [...t.slice(-2), { id, text, kind }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), kind === 'err' ? 7000 : 3000);
+    setToasts((t) => [...t.filter((item, i) => item.undo || i >= t.length - 2), { id, text, kind, undo }]);
   }, []);
-  return { toasts, push };
+  const dismiss = useCallback((id: number) => setToasts((t) => t.filter((item) => item.id !== id)), []);
+  return { toasts, push, dismiss };
 }
 
 export async function copyText(text: string): Promise<boolean> {

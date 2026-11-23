@@ -95,6 +95,15 @@ async function openActions(page) {
   await page.waitForSelector(actions, { visible: true, timeout: 8000 });
 }
 
+async function undoDeletion(page) {
+  const undo = '.toast-region[role=status] .toast button';
+  await waitText(page, '.toast-region', 'Deleted · Undo');
+  assert.equal(await page.$eval(undo, (button) => button.tabIndex), 0);
+  await page.focus(undo);
+  await page.keyboard.press('Enter');
+  await waitText(page, '.toast-region', 'Restored.');
+}
+
 async function pasteReply(page, text) {
   await page.bringToFront();
   await page.evaluate((value) => navigator.clipboard.writeText(value), text);
@@ -161,6 +170,16 @@ try {
   const firstQuestion = await lib.$eval(questionToggle, (summary) => summary.textContent);
   assert.ok(firstQuestion.includes(openQuestion));
   assert.ok(firstQuestion.includes('0 answers'));
+  const openControls = await lib.$eval(questionToggle, (toggle) => toggle.getAttribute('aria-controls'));
+  await menuAction(lib, '.question button[aria-label="More question actions"]', 'Delete question');
+  await lib.waitForSelector(`[aria-controls="${openControls}"]`, { hidden: true });
+  await undoDeletion(lib);
+  await lib.waitForSelector(`[aria-controls="${openControls}"]`);
+  const questionLink = await open(`library/library.html#question=${openControls.slice('question-'.length)}`);
+  await questionLink.waitForSelector(`[aria-controls="${openControls}"][aria-expanded="true"]`);
+  await waitText(questionLink, '.product-name', 'Field Notes');
+  await questionLink.close();
+  await lib.bringToFront();
   assert.equal(await lib.$('.question[data-open=true]'), null);
   await waitText(lib, '.question-preview', original);
   assert.equal(await lib.$('.question textarea'), null);
@@ -297,10 +316,26 @@ try {
   await lib.keyboard.press('Backspace');
   await waitText(lib, '.question .badge', 'Privacy');
   assert.equal(await lib.$('.question[data-open=true]'), null);
+  const preview = await lib.$eval('.question-toggle', (button) => ({
+    text: button.querySelector('.question-preview').textContent,
+    labels: [...button.querySelectorAll('.badge')].map((label) => label.textContent),
+  }));
+  assert.deepEqual(preview.labels, preview.text === localized ? ['中文'] : []);
+  await lib.hover('.brand-link');
+  for (const scheme of ['light', 'dark']) {
+    await lib.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: scheme }]);
+    assert.equal(await lib.$eval('.brand-link', (title) => getComputedStyle(title).backgroundColor), 'rgba(0, 0, 0, 0)');
+  }
+  assert.equal(await lib.$eval('.nav-item', (item) => getComputedStyle(item).fontSize), '14px');
+  assert.equal(await lib.$eval('.question-line strong', (title) => getComputedStyle(title).fontSize), '15px');
   await screenshots(lib, 'library-product');
-  await click(lib, 'SnipCue');
-  await waitText(lib, 'main h1', 'Library');
-  await screenshots(lib, 'library-home');
+  await clickProduct(lib, 'Ink Pad');
+  await lib.waitForFunction(async () => {
+    const { lastViewedProductId } = await chrome.storage.local.get('lastViewedProductId');
+    return location.hash === '#product=' + lastViewedProductId;
+  });
+  await lib.goto(origin + '/library/library.html');
+  await waitText(lib, '.product-name', 'Ink Pad');
   await click(lib, 'Help');
   await waitText(lib, 'main h1', 'Help');
   await waitText(lib, 'main', 'Open Chrome shortcuts');
@@ -308,7 +343,7 @@ try {
   const shortcutsTarget = browser.waitForTarget((target) => target.url() === 'chrome://extensions/shortcuts');
   await click(lib, 'Open Chrome shortcuts');
   await (await (await shortcutsTarget).asPage()).close();
-  console.log('PASS read-first questions, status and text filters, per-product filter memory, and sidebar create/rename');
+  console.log('PASS preview label pairing, type size, last-viewed product, and existing filtering and library navigation');
 
   await panel.bringToFront();
   await panel.waitForSelector(productPicker);
@@ -316,6 +351,7 @@ try {
   await panel.$eval(search, (box) => { box.focus(); box.select(); });
   await panel.keyboard.press('Backspace');
   await waitText(panel, '.results', original);
+  await panel.waitForFunction((text) => document.querySelector('.answer-head')?.textContent.includes(text), { timeout: 8000 }, localized);
   await panel.$eval(search, (box) => box.blur());
   assert.equal(await panel.evaluate(() => document.documentElement.scrollWidth), 320);
   assert.equal(await panel.$eval('.preview-clamp', (el) => getComputedStyle(el).webkitLineClamp), '2');
@@ -408,6 +444,7 @@ try {
   assert.equal(backup.schema_version, 2);
   assert.equal(backup.answers.length, 5);
   assert.ok(!backup.answers.some((answer) => answer.text === 'Skip this answer.'));
+  assert.ok(backup.answers.every((answer) => answer.copyCount === undefined && answer.lastCopiedAt === undefined));
   console.log('PASS scoped product export, backup date, and seven-day reminder dismissal');
 
   const restored = await launch();
@@ -457,12 +494,10 @@ try {
   assert.equal(await destination.$(editAnswer), null);
 
   const answerMenu = `${answerBlock} button[aria-label="More answer actions"]`;
-  destination.once('dialog', (dialog) => void dialog.dismiss());
-  await menuAction(destination, answerMenu, 'Delete answer');
-  await waitText(destination, `${answerBlock} .answer-text`, 'Edited answer.');
-  destination.once('dialog', (dialog) => void dialog.accept());
   await menuAction(destination, answerMenu, 'Delete answer');
   await destination.waitForSelector(answerBlock, { hidden: true });
+  await undoDeletion(destination);
+  await waitText(destination, `${answerBlock} .answer-text`, 'Edited answer.');
   await click(destination, 'Add answer');
   await destination.locator('form[aria-label="New answer"] textarea').fill('A new answer.');
   await click(destination, 'Add');
@@ -474,16 +509,17 @@ try {
   await waitText(destination, '.inline-title-edit .save-status', 'Saved ✓');
   await destination.click(filterInput);
   await waitText(destination, questionToggle, 'How do I work offline?');
-  destination.once('dialog', (dialog) => void dialog.accept());
   await menuAction(destination, questionMenu, 'Delete question');
   await destination.waitForFunction(() => !document.querySelector('.question[data-open=true]'));
+  await undoDeletion(destination);
+  await waitText(destination, questionToggle, 'How do I work offline?');
 
   destination.once('dialog', (dialog) => void dialog.dismiss());
   await menuAction(destination, productActions, 'Delete product');
   await waitText(destination, '.product-name', 'Field Notes');
   destination.once('dialog', (dialog) => void dialog.accept());
   await menuAction(destination, productActions, 'Delete product');
-  await waitText(destination, 'main h1', 'Library');
+  await waitText(destination, '.product-name', 'Ink Pad');
   assert.equal(await destination.$('.question'), null);
   const counts = await destination.evaluate(async () => {
     const db = await new Promise((resolve) => { const req = indexedDB.open('snipcue'); req.onsuccess = () => resolve(req.result); });
@@ -492,7 +528,10 @@ try {
     })));
   });
   assert.deepEqual(counts, [1, 0, 0]);
-  console.log('PASS backup round-trip, inline idle and blur autosave, Escape rollback, and confirmed menu deletes');
+  await undoDeletion(destination);
+  await waitText(destination, '.product-name', 'Field Notes');
+  await waitText(destination, questionToggle, 'How do I work offline?');
+  console.log('PASS keyboard Undo for answer, question, open question, and confirmed product deletion');
 
   const feedUrl = 'https://feeds.example.test/ink-pad.json';
   const oldFeedAnswer = 'Version one of the guide.';

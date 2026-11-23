@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { refreshProductFeed } from '../core/feed';
-import { createProduct, createQuestion } from '../core/library';
+import { createProduct, createQuestion, recordAnswerCopy } from '../core/library';
 import { answerImportPrompt } from '../core/portable';
 import { buildIndex, searchAnswers } from '../core/search';
 import type { Answer, Product } from '../core/types';
@@ -19,7 +19,7 @@ function openLibrary(hash = '') {
 
 export function App() {
   const { snapshot, error } = useLibrary();
-  const { toasts, push } = useToasts();
+  const { toasts, push, dismiss } = useToasts();
   const [remembered, setRemembered] = useState<string | null>();
   const [query, setQuery] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
@@ -134,6 +134,7 @@ export function App() {
     window.clearTimeout(copyTimer.current);
     setCopiedId(answer.id);
     copyTimer.current = window.setTimeout(() => setCopiedId(null), 1500);
+    void recordAnswerCopy(answer.id).catch(console.warn);
   }
 
   function moveResultFocus(direction: 1 | -1, currentId?: string) {
@@ -229,7 +230,7 @@ export function App() {
       </section>
 
       {manualCopy && (
-        <ManualCopy text={manualCopy.text} onDone={() => {
+        <ManualCopy text={manualCopy.text} onCopy={() => void recordAnswerCopy(manualCopy.id).catch(console.warn)} onDone={() => {
           document.getElementById(`copy-${manualCopy.id}`)?.focus();
           setManualCopy(null);
         }} />
@@ -314,7 +315,7 @@ export function App() {
         </section>
       )}
       <p className="visually-hidden" role="status">{copiedId && 'Copied to clipboard.'}</p>
-      <Toasts toasts={toasts} />
+      <Toasts toasts={toasts} dismiss={dismiss} />
     </main>
   );
 }

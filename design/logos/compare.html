@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SnipCue logo concepts</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 38px; background: #eef0f4; color: #171d2a; font: 14px/1.4 system-ui, sans-serif; }
+    main { max-width: 1320px; margin: auto; }
+    h1, h2, h3, p, figure { margin: 0; }
+    h1 { font-size: 38px; letter-spacing: -.045em; line-height: 1.1; margin-bottom: 10px; }
+    h2 { font-size: 21px; letter-spacing: -.025em; }
+    h3 { font-size: 12px; letter-spacing: .025em; font-weight: 650; }
+    header > p { color: #526077; font-size: 15px; }
+    .concepts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 25px; }
+    article { display: grid; align-content: start; gap: 10px; padding: 16px; background: #fff; border-radius: 15px; border: 1px solid #dce0e8; }
+    article > p { color: #526077; min-height: 40px; }
+    .sample { padding: 10px 12px; border: 1px solid #e0e4ec; border-radius: 10px; background: #f7f8fa; }
+    .sample.dark { background: #202532; color: #f0f2f8; border-color: #202532; }
+    .sizes { display: grid; grid-template-columns: repeat(3, minmax(26px, 1fr)) minmax(128px, 1.7fr); align-items: end; gap: 6px; }
+    figure { display: grid; justify-items: center; align-content: end; gap: 6px; }
+    img { display: block; }
+    figcaption { color: #526077; font: 11px/1.2 ui-monospace, monospace; }
+    .dark figcaption { color: #b6c0d1; }
+    .toolbar-preview { display: grid; gap: 5px; margin-top: 2px; }
+    .toolbar {
+      display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 7px;
+      background: #eef0f5; color: #424a5d; border: 1px solid #e0e4ec; font-size: 14px;
+    }
+    .toolbar.dark { color: #d0d6e4; background: #202532; border-color: #202532; }
+    .address {
+      flex: 1; padding: 3px 9px; overflow: hidden; border-radius: 12px;
+      background: #fff; color: #526077; font-size: 10px; white-space: nowrap;
+    }
+    .dark .address { color: #c5cddd; background: #343b4a; }
+    .toolbar-icon { display: grid; place-items: center; width: 27px; height: 26px; }
+    @media (max-width: 950px) {
+      body { padding: 20px; }
+      .concepts { grid-template-columns: repeat(auto-fit, minmax(min(100%, 325px), 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>SnipCue logo concepts</h1>
+      <p>Save recurring questions, get answers from your AI, and copy the right reply while browsing.</p>
+    </header>
+    <div class="concepts"></div>
+  </main>
+  <template id="concept">
+    <article>
+      <h2></h2><p></p>
+      <section class="sample"><h3>Light surface</h3><div class="sizes"></div></section>
+      <section class="sample dark"><h3>Dark surface</h3><div class="sizes"></div></section>
+      <section class="toolbar-preview">
+        <h3>Browser toolbar</h3>
+        <div class="toolbar" aria-label="Light toolbar mockup">
+          <span aria-hidden="true">←</span><span aria-hidden="true">↻</span>
+          <span class="address">example.com</span><span class="toolbar-icon"></span><span aria-hidden="true">⋮</span>
+        </div>
+        <div class="toolbar dark" aria-label="Dark toolbar mockup">
+          <span aria-hidden="true">←</span><span aria-hidden="true">↻</span>
+          <span class="address">example.com</span><span class="toolbar-icon"></span><span aria-hidden="true">⋮</span>
+        </div>
+      </section>
+    </article>
+  </template>
+  <script>
+    const concepts = [
+      ['cue-bubble', 'Cue Bubble', 'A prompt inside a speech bubble turns a saved question into a ready-to-copy reply.'],
+      ['reply-stack', 'Reply Stack', 'Two offset sheets pair the saved question with the reply you can copy while browsing.'],
+      ['spark-bookmark', 'Spark Bookmark', 'A bookmark keeps the question within reach and a spark marks the AI-written answer.'],
+    ];
+    const template = document.querySelector('#concept');
+    for (const [folder, title, rationale] of concepts) {
+      const card = template.content.cloneNode(true);
+      card.querySelector('h2').textContent = title;
+      card.querySelector('p').textContent = rationale;
+      function mark(size) {
+        return Object.assign(document.createElement('img'), {
+          src: folder + '/logo-' + size + '.png', alt: title, width: size, height: size,
+        });
+      }
+      for (const row of card.querySelectorAll('.sizes')) {
+        for (const size of [16, 32, 48, 128]) {
+          const figure = document.createElement('figure');
+          const caption = document.createElement('figcaption');
+          caption.textContent = size + ' px';
+          figure.append(mark(size), caption);
+          row.append(figure);
+        }
+      }
+      for (const toolbar of card.querySelectorAll('.toolbar-icon')) toolbar.append(mark(16));
+      document.querySelector('.concepts').append(card);
+    }
+  </script>
+</body>
+</html>

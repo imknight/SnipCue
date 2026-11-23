@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { createProduct, createQuestion } from '../core/library';
+import { createProduct, createQuestion, restoreDeleted } from '../core/library';
+import type { LibrarySnapshot } from '../core/types';
 import { isUuid } from '../core/util';
 import { Toasts } from '../ui/components';
 import { useLibrary, useToasts } from '../ui/hooks';
@@ -12,13 +13,14 @@ const backupDefaults = { lastExportAt: 0, backupReminderDismissedUntil: 0 };
 
 export function App() {
   const { snapshot, error } = useLibrary();
-  const { toasts, push } = useToasts();
+  const { toasts, push, dismiss } = useToasts();
   const [hash, setHash] = useState(location.hash);
   const [adding, setAdding] = useState(location.hash === '#add');
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
   const [capture, setCapture] = useState<{ key: string; text?: string } | null>(null);
   const [backupSettings, setBackupSettings] = useState<typeof backupDefaults | null>(null);
+  const [lastViewed, setLastViewed] = useState<string | null>();
   const newProductButton = useRef<HTMLButtonElement>(null);
   const params = new URLSearchParams(hash.slice(1));
   const captureId = params.get('capture');
@@ -33,6 +35,9 @@ export function App() {
     };
     window.addEventListener('hashchange', update);
     return () => window.removeEventListener('hashchange', update);
+  }, []);
+  useEffect(() => {
+    void chrome.storage.local.get({ lastViewedProductId: null }).then(({ lastViewedProductId }) => setLastViewed(lastViewedProductId));
   }, []);
   useEffect(() => {
     if (!captureKey) return;
@@ -72,15 +77,42 @@ export function App() {
     push(saved ? 'Question saved.' : 'Question is already saved.');
   }
 
-  if (error) return <p className="notice err" role="alert">{error}</p>;
-  if (!snapshot) return <p className="muted" style={{ padding: 16 }}>Loading…</p>;
+  async function deleteWithUndo(remove: () => Promise<LibrarySnapshot | undefined>) {
+    try {
+      const deleted = await remove();
+      if (deleted) push('Deleted', 'ok', async () => {
+        try {
+          await restoreDeleted(deleted);
+          push('Restored.');
+          return true;
+        } catch (e) {
+          push((e as Error).message, 'err');
+          return false;
+        }
+      });
+    } catch (e) {
+      push((e as Error).message, 'err');
+    }
+  }
 
-  const answer = snapshot.answers.find((a) => a.id === params.get('answer'));
-  const question = snapshot.questions.find((q) => q.id === (answer?.question_id ?? params.get('question')));
-  const products = [...snapshot.products].sort((a, b) => a.name.localeCompare(b.name));
-  const product = products.find((p) => p.id === (question?.product_id ?? params.get('product')));
+  const answer = snapshot?.answers.find((a) => a.id === params.get('answer'));
+  const question = snapshot?.questions.find((q) => q.id === (answer?.question_id ?? params.get('question')));
+  const products = [...(snapshot?.products ?? [])].sort((a, b) => a.name.localeCompare(b.name));
+  const requestedId = question?.product_id ?? params.get('product');
   const backup = hash === '#backup';
   const help = hash === '#help';
+  const product = (backup || help || captureKey) ? undefined
+    : products.find((p) => p.id === requestedId) ?? products.find((p) => p.id === lastViewed) ?? products[0];
+  const productId = product?.id;
+  useEffect(() => {
+    if (!productId || lastViewed === undefined || lastViewed === productId) return;
+    setLastViewed(productId);
+    void chrome.storage.local.set({ lastViewedProductId: productId });
+  }, [lastViewed, productId]);
+
+  if (error) return <p className="notice err" role="alert">{error}</p>;
+  if (!snapshot || lastViewed === undefined) return <p className="muted" style={{ padding: 16 }}>Loading…</p>;
+
   const home = !backup && !help && !captureKey && !product;
   const answered = new Set(snapshot.answers.map((a) => a.question_id));
   const counts = new Map(products.map((p) => [p.id, { answered: 0, open: 0 }]));
@@ -94,6 +126,7 @@ export function App() {
 
   return (
     <div className="layout">
+      <Toasts toasts={toasts} dismiss={dismiss} />
       <nav className="sidebar" aria-label="Library">
         <button type="button" className="brand-link" aria-current={home ? 'page' : undefined} onClick={() => go('')}>SnipCue</button>
         <div className="stack product-list">
@@ -197,26 +230,14 @@ export function App() {
           <Help />
         ) : product ? (
           <ProductView key={product.id} product={product} snapshot={snapshot} notify={push} focusAnswerId={answer?.id}
-            focusQuestionId={question?.id} onDeleted={() => go('')} />
+            focusQuestionId={question?.id} deleteWithUndo={deleteWithUndo} />
         ) : (
           <section className="stack library-home">
-            <h1>{products.length ? 'Library' : 'Add a product'}</h1>
-            <p className="muted">{products.length ? 'Choose a product to browse its questions and answers.' : 'Save answers you can find and copy while browsing.'}</p>
-            {products.length > 0 && <div className="home-products">
-              {products.map((p) => {
-                const count = counts.get(p.id)!;
-                return (
-                  <button type="button" key={p.id} className="card home-product" onClick={() => go(`#product=${p.id}`)}>
-                    <strong>{p.name}</strong>
-                    <span className="small muted">{count.answered} answered{count.open > 0 && ` · ${count.open} open`}{p.feed_url && ' · Feed'}</span>
-                  </button>
-                );
-              })}
-            </div>}
+            <h1>Add a product</h1>
+            <p className="muted">Save answers you can find and copy while browsing.</p>
           </section>
         )}
       </main>
-      <Toasts toasts={toasts} />
     </div>
   );
 }

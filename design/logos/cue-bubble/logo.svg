@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>Cue Bubble</title>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="#3949cc"/>
+  <polygon points="16,37 31,37 16,53" fill="#ffffff"/>
+  <rect x="10" y="13" width="44" height="32" rx="9" fill="#ffffff"/>
+  <polygon points="18,23 22,20 33,29 22,38 18,35 26,29" fill="#3949cc"/>
+  <rect x="35" y="28" width="11" height="5" rx="2.5" fill="#3949cc"/>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>Reply Stack</title>
+  <rect x="17" y="5" width="42" height="40" rx="9" fill="#159780"/>
+  <polygon points="12,43 29,43 12,58" fill="#07594d"/>
+  <rect x="5" y="15" width="45" height="35" rx="9" fill="#07594d"/>
+  <rect x="10" y="20" width="35" height="25" rx="5" fill="#ffffff"/>
+  <rect x="16" y="26" width="23" height="4" rx="2" fill="#07594d"/>
+  <rect x="16" y="34" width="16" height="4" rx="2" fill="#07594d"/>
+</svg>

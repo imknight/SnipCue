@@ -11,14 +11,15 @@ import { MoreActions } from './MoreActions';
 
 type FilterMode = 'all' | 'open' | 'answered';
 const initialFilter: { mode: FilterMode; query: string } = { mode: 'all', query: '' };
+type DeleteWithUndo = (remove: () => Promise<LibrarySnapshot | undefined>) => Promise<void>;
 
-export function ProductView({ product, snapshot, notify, focusAnswerId, focusQuestionId, onDeleted }: {
+export function ProductView({ product, snapshot, notify, focusAnswerId, focusQuestionId, deleteWithUndo }: {
   product: Product;
   snapshot: LibrarySnapshot;
   notify: Notify;
   focusAnswerId?: string;
   focusQuestionId?: string;
-  onDeleted: () => void;
+  deleteWithUndo: DeleteWithUndo;
 }) {
   const filterKey = `question-filter:${product.id}`;
   const [filter, setFilter] = useState(() => {
@@ -82,12 +83,7 @@ export function ProductView({ product, snapshot, notify, focusAnswerId, focusQue
 
   async function removeProduct() {
     if (!window.confirm(`Delete “${product.name}” and all its questions and answers?`)) return;
-    try {
-      await deleteProduct(product.id);
-      onDeleted();
-    } catch (e) {
-      notify((e as Error).message, 'err');
-    }
+    await deleteWithUndo(() => deleteProduct(product.id));
   }
 
   return (
@@ -153,6 +149,7 @@ export function ProductView({ product, snapshot, notify, focusAnswerId, focusQue
         {visible.map(({ question, answers }) => (
           <QuestionView key={question.id} question={question} answers={answers} feed={!!product.feed_url} notify={notify}
             focusAnswerId={focusAnswerId} focused={question.id === focusQuestionId}
+            deleteWithUndo={deleteWithUndo}
             onEditingChange={(active) => setEditingRow((current) => active ? question.id : current === question.id ? null : current)} />
         ))}
       </section>
@@ -209,9 +206,10 @@ function NewQuestion({ product, notify, onClose }: { product: Product; notify: N
   );
 }
 
-function QuestionView({ question, answers, feed, notify, focusAnswerId, focused, onEditingChange }: {
+function QuestionView({ question, answers, feed, notify, focusAnswerId, focused, onEditingChange, deleteWithUndo }: {
   question: Question; answers: Answer[]; feed: boolean; notify: Notify; focusAnswerId?: string; focused: boolean;
   onEditingChange: (active: boolean) => void;
+  deleteWithUndo: DeleteWithUndo;
 }) {
   const [open, setOpen] = useState(focused);
   const [editing, setEditing] = useState(false);
@@ -221,7 +219,6 @@ function QuestionView({ question, answers, feed, notify, focusAnswerId, focused,
   const toggle = useRef<HTMLButtonElement>(null);
   const readOnly = feed && !!answers.length;
   const first = answers[0];
-  const labels = [...new Set(answers.flatMap((answer) => answer.label ? [answer.label] : []))];
   useEffect(() => {
     if (!focused) return;
     setOpen(true);
@@ -251,23 +248,23 @@ function QuestionView({ question, answers, feed, notify, focusAnswerId, focused,
                 <span className="small muted">{answers.length} {answers.length === 1 ? 'answer' : 'answers'}</span>
                 {saved && <SaveStatus text="Saved ✓" />}
               </span>
-              {!open && first && <span className="question-preview muted">{first.text}</span>}
-              {!open && labels.length > 0 && <span className="answer-labels">{labels.map((label) => <span key={label} className="badge">{label}</span>)}</span>}
+              {!open && first && <span className="question-preview-row">
+                <span className="question-preview muted">{first.text}</span>
+                {first.label && <span className="badge">{first.label}</span>}
+              </span>}
             </span>
           </button>
         )}
         {!readOnly && <MoreActions label="More question actions" actions={[
           { label: 'Edit question', onSelect: () => { setEditing(true); setSaved(false); onEditingChange(true); } },
-          { label: 'Delete question', danger: true, onSelect: async () => {
-            if (!window.confirm('Delete this question and all its answers?')) return;
-            try { await deleteQuestion(question.id); } catch (e) { notify((e as Error).message, 'err'); }
-          } },
+          { label: 'Delete question', danger: true, onSelect: () => void deleteWithUndo(() => deleteQuestion(question.id)) },
         ]} />}
       </div>
       <div id={`question-${question.id}`} hidden={!open}>
         {open && (
           <div className="stack question-body">
-            {answers.map((answer) => <AnswerView key={answer.id} answer={answer} readOnly={feed} notify={notify} onEditingChange={onEditingChange} />)}
+            {answers.map((answer) => <AnswerView key={answer.id} answer={answer} readOnly={feed}
+              deleteWithUndo={deleteWithUndo} onEditingChange={onEditingChange} />)}
             {!answers.length && <p className="small muted">No answer yet.</p>}
             {!feed && (adding
               ? <NewAnswer question={question} notify={notify} onClose={() => setAdding(false)} />
@@ -304,8 +301,8 @@ function NewAnswer({ question, notify, onClose }: { question: Question; notify: 
   );
 }
 
-function AnswerView({ answer, readOnly, notify, onEditingChange }: {
-  answer: Answer; readOnly: boolean; notify: Notify; onEditingChange: (active: boolean) => void;
+function AnswerView({ answer, readOnly, deleteWithUndo, onEditingChange }: {
+  answer: Answer; readOnly: boolean; deleteWithUndo: DeleteWithUndo; onEditingChange: (active: boolean) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -329,10 +326,7 @@ function AnswerView({ answer, readOnly, notify, onEditingChange }: {
             {!readOnly && <div className="row">
               <button ref={editButton} type="button" className="link" onClick={() => { setEditing(true); setSaved(false); onEditingChange(true); }}>Edit</button>
               <MoreActions label="More answer actions" actions={[{
-                label: 'Delete answer', danger: true, onSelect: async () => {
-                  if (!window.confirm('Delete this answer?')) return;
-                  try { await deleteAnswer(answer.id); } catch (e) { notify((e as Error).message, 'err'); }
-                },
+                label: 'Delete answer', danger: true, onSelect: () => void deleteWithUndo(() => deleteAnswer(answer.id)),
               }]} />
             </div>}
           </div>
