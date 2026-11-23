@@ -35,7 +35,7 @@ English
 
 | Asset | Dimensions | Status |
 |---|---|---|
-| Store icon | 128×128 | Ready in `extension/static/icons/icon-128.png` |
+| Store icon | 128×128 | Cue Bubble in `extension/static/icons/icon-128.png` |
 | Side-panel screenshot | 1280×800 | Capture search results and an expanded answer |
 | Library screenshot | 1280×800 | Capture a product, its questions, and the AI answer preview |
 | Small promo tile | 440×280 | Pending |

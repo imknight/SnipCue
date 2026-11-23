@@ -1,5 +1,7 @@
 # SnipCue
 
+![SnipCue Cue Bubble logo](extension/static/icons/icon-48.png)
+
 **Stop retyping the same answers.** SnipCue is a Chrome extension that keeps the answers you give about your products — pricing, features, "do I need an account?" — and puts them one click away in the side panel while you reply on any website.
 
 Your AI writes the answers; SnipCue stores, finds and copies them.
