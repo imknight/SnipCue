@@ -1,0 +1,11 @@
+{
+  "name": "snipcue",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["extension"],
+  "scripts": {
+    "build": "npm run build -w extension",
+    "test": "npm test -w extension",
+    "typecheck": "npm run typecheck -w extension"
+  }
+}

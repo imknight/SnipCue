@@ -1,0 +1,111 @@
+.layout { display: grid; grid-template-columns: 228px minmax(0, 1fr); min-block-size: 100vh; }
+.sidebar {
+  display: flex; flex-direction: column; gap: 24px; padding: 22px 14px 16px;
+  position: sticky; inset-block-start: 0; block-size: 100vh; overflow: auto;
+  border-inline-end: 1px solid var(--border); background: var(--surface);
+}
+.sidebar .theme-picker { margin-block-start: auto; }
+.brand-link {
+  align-self: start; min-block-size: 0; padding: 0 7px;
+  background: none; border: 0; font-size: 20px; font-weight: 750; letter-spacing: -.035em;
+}
+.nav-heading { font-size: 12px; padding-inline: 8px; }
+.product-list { gap: 5px; }
+.nav-item { text-align: start; border: none; background: none; border-radius: 6px; padding: 6px 8px; inline-size: 100%; overflow-wrap: anywhere; }
+.nav-item[aria-current='page'] { background: var(--accent-soft); font-weight: 650; }
+.product-nav-item { display: flex; align-items: center; gap: 6px; }
+.nav-product-name { flex: 1; min-inline-size: 0; }
+.nav-count { min-inline-size: 1.25em; font-variant-numeric: tabular-nums; text-align: end; }
+.open-dot { color: var(--accent); font-size: 16px; line-height: 1; }
+.new-product { color: var(--accent); }
+.add-product { flex-wrap: nowrap; padding-inline: 4px; }
+.add-product input { min-inline-size: 0; }
+.add-product button { flex: none; padding-inline: 8px; }
+.sidebar hr, .library-menu hr { inline-size: 100%; border: 0; border-block-start: 1px solid var(--border); margin: 6px 0; }
+
+.content { padding: 27px 34px 70px; max-inline-size: 1040px; gap: 15px; align-content: start; }
+.content h1 { font-size: 27px; letter-spacing: -.035em; }
+.product-view { gap: 20px; }
+.product-heading { gap: 5px; }
+.product-heading-row { flex-wrap: wrap; gap: 10px; align-items: center; }
+.product-name { flex: 1 1 12rem; min-inline-size: 0; }
+.rename-product { padding: 0 4px; margin-inline-start: -4px; border: 0; background: none; font-weight: inherit; text-align: start; overflow-wrap: anywhere; }
+.name-pencil { display: inline-block; margin-inline-start: 8px; color: var(--muted); font-size: 16px; vertical-align: .15em; }
+.product-heading-row > .inline-title-edit { flex: 1 1 12rem; min-inline-size: 0; }
+.product-heading-row > .inline-title-edit input { max-inline-size: 22rem; font-size: 20px; font-weight: 650; }
+.product-stats { gap: 5px; min-block-size: 25px; }
+.feed-summary { gap: 4px; }
+.product-stats .icon-button { min-block-size: 24px; min-inline-size: 24px; font-size: 16px; }
+.icon-button {
+  display: inline-grid; place-items: center; flex: none; min-block-size: 30px; min-inline-size: 30px;
+  padding: 0; font-size: 19px; line-height: 1; color: var(--muted);
+}
+.library-menu {
+  position: fixed; inset: auto; margin: 0; min-inline-size: 168px; max-inline-size: min(240px, calc(100vw - 20px));
+  max-block-size: calc(100vh - 48px); padding: 4px; color: var(--text); box-shadow: 0 5px 18px rgb(0 0 0 / .16);
+}
+.library-menu button { inline-size: 100%; text-align: start; border: 0; background: none; padding: 6px 9px; }
+.library-menu hr { margin-block: 3px; }
+.backup-reminder { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; background: var(--accent-soft); }
+.backup-reminder button { padding-inline: 0; }
+.backup-reminder .row { gap: 12px; }
+
+.question-toolbar { flex-wrap: wrap; gap: 8px; }
+.question-toolbar > input { flex: 1 1 12rem; inline-size: auto; min-inline-size: 0; }
+.question-toolbar > button { margin-inline-start: auto; }
+.questions { gap: 10px; }
+.question-empty { padding: 10px 2px; }
+.question { padding: 7px; }
+.question-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; column-gap: 6px; }
+.question-header > .icon-button { border-color: transparent; }
+.question-toggle {
+  display: grid; grid-template-columns: 16px minmax(0, 1fr); align-items: start; gap: 6px;
+  border: none; background: none; padding: 6px; inline-size: 100%; text-align: start;
+}
+.question-chevron { font-size: 16px; text-align: center; color: var(--muted); }
+.question-toggle[aria-expanded='true'] .question-chevron { transform: rotate(180deg); }
+.question-summary { display: grid; gap: 4px; min-inline-size: 0; }
+.question-line { display: flex; flex-wrap: wrap; column-gap: 8px; align-items: baseline; overflow-wrap: anywhere; }
+.question-line strong { font-weight: 665; }
+.question-preview { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 13px; }
+.answer-labels { display: flex; flex-wrap: wrap; gap: 4px; }
+.answer-labels .badge, .answer-block .badge { overflow-wrap: anywhere; white-space: normal; }
+.question-body { padding: 8px 6px 5px 28px; gap: 9px; }
+.answer-block { padding: 9px 11px; gap: 5px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; }
+.answer-meta { gap: 6px; }
+.answer-meta .row { gap: 5px; }
+.answer-meta .icon-button { border-color: transparent; background: none; min-inline-size: 26px; min-block-size: 26px; }
+.answer-meta .icon-button:hover { background: var(--surface-2); }
+.inline-title-edit { display: grid; gap: 3px; }
+.inline-title-edit .save-status:empty, .inline-answer-edit .save-status:empty { display: none; }
+.save-error { color: var(--danger); }
+
+.library-home { gap: 11px; }
+.home-products { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 195px), 1fr)); gap: 10px; }
+.home-product { display: grid; gap: 6px; justify-items: start; text-align: start; overflow-wrap: anywhere; }
+.home-product strong { font-size: 15px; }
+.help-page { max-inline-size: 660px; }
+.help-page .card { gap: 8px; padding: 14px; }
+.help-page ol { margin: 0; padding-inline-start: 1.5em; }
+.help-page li + li { margin-block-start: 3px; }
+kbd { padding: 1px 4px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); }
+
+.feed-dialog { color: var(--text); inline-size: min(512px, calc(100vw - 32px)); max-block-size: min(85vh, 720px); padding: 20px; }
+.feed-dialog:modal { overscroll-behavior: contain; }
+.feed-dialog::backdrop { background: #0007; overflow: hidden; overscroll-behavior: contain; }
+.feed-dialog h2 { font-size: 19px; }
+.feed-dialog-actions { justify-content: space-between; }
+.feed-dialog-actions > div:last-child { margin-inline-start: auto; }
+.feed-guide { border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; }
+.feed-guide summary { cursor: pointer; color: var(--accent); }
+.feed-guide > div { padding-block-start: 8px; gap: 6px; }
+.feed-guide code { overflow-wrap: anywhere; }
+.feed-guide pre { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+.feed-message { background: var(--accent-soft); }
+
+@media (max-width: 720px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .sidebar { position: static; block-size: auto; border-inline-end: none; border-block-end: 1px solid var(--border); gap: 14px; }
+  .sidebar .theme-picker { max-inline-size: 220px; }
+  .content { padding: 16px; }
+}

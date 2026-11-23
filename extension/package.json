@@ -1,0 +1,30 @@
+{
+  "name": "@snipcue/extension",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:store": "node scripts/build.mjs --store",
+    "keygen": "node scripts/keygen.mjs",
+    "icons": "node scripts/icons.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "test:browser": "npm run build && node test/browser/smoke.mjs"
+  },
+  "dependencies": {
+    "idb": "8.0.3",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/chrome": "0.0.287",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "esbuild": "0.24.2",
+    "fake-indexeddb": "6.0.0",
+    "puppeteer-core": "24.10.0",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
+  }
+}
