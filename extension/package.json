@@ -2,6 +2,8 @@
   "name": "@snipcue/extension",
   "private": true,
   "version": "0.1.0",
+  "description": "SnipCue Chrome extension",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",

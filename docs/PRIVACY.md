@@ -30,4 +30,4 @@ Deleting an answer, question, or product removes that record from your local lib
 
 ## Contact
 
-[CONTACT EMAIL — fill in before publishing]
+Questions or requests: open an issue in the SnipCue GitHub repository.
